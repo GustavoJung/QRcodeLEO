@@ -1,0 +1,125 @@
+<!doctype html>
+<html lang="pt-br">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Gerador de QR Code</title>
+  <link rel="icon" type="image/png" href="./logo_leo.png">
+  <meta name="color-scheme" content="light dark">
+  <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="min-h-screen bg-gray-50 text-gray-900 dark:bg-neutral-900 dark:text-neutral-100">
+  <header class="py-6 flex flex-col items-center justify-center">
+    <img src="./logo_leo.png" alt="Logo" class="w-20 h-20 mb-3 rounded-full shadow">
+    <h1 class="text-center text-3xl font-semibold">Gerador de QR Code</h1>
+    <p class="mt-2 text-center text-sm text-gray-500 dark:text-neutral-400">
+      Cole o link e, se quiser, envie um logo (PNG/JPG) para o centro do QR.
+    </p>
+  </header>
+
+  <main class="max-w-3xl mx-auto px-4 pb-16">
+    <div id="alert" class="hidden mb-6 rounded-xl border border-amber-300 bg-amber-50 px-4 py-3 text-amber-800 dark:border-amber-600 dark:bg-amber-950/40 dark:text-amber-200"></div>
+
+    <div class="grid gap-6 md:grid-cols-2">
+      <form id="qr-form" class="rounded-2xl bg-white/70 dark:bg-neutral-800/70 backdrop-blur border border-gray-200 dark:border-neutral-700 p-6 shadow-sm">
+        <label class="block text-sm font-medium mb-2" for="url">Link do QR Code</label>
+        <input required type="url" id="url" name="url" placeholder="https://exemplo.com/meu-link"
+               class="w-full rounded-xl border border-gray-300 dark:border-neutral-700 bg-white dark:bg-neutral-900 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"/>
+
+        <div class="mt-5">
+          <label class="block text-sm font-medium mb-2" for="logo">Logo (opcional) — PNG/JPG</label>
+          <input type="file" id="logo" name="logo" accept="image/png, image/jpeg, image/jpg"
+                 class="w-full text-sm file:mr-4 file:rounded-xl file:border-0 file:bg-indigo-600 file:px-4 file:py-2 file:text-white hover:file:bg-indigo-700"/>
+          <p class="mt-2 text-xs text-gray-500 dark:text-neutral-400">Máx. 10 MB.</p>
+        </div>
+
+        <div class="mt-6 flex items-center gap-3">
+          <button type="submit"
+                  class="inline-flex items-center justify-center rounded-xl bg-indigo-600 px-4 py-2 text-white text-sm font-medium hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-indigo-500">
+            Gerar QR Code
+          </button>
+          <button type="reset"
+                  class="rounded-xl border border-gray-300 dark:border-neutral-700 px-4 py-2 text-sm hover:bg-gray-50 dark:hover:bg-neutral-800">
+            Limpar
+          </button>
+        </div>
+      </form>
+
+      <div class="rounded-2xl bg-white/70 dark:bg-neutral-800/70 backdrop-blur border border-gray-200 dark:border-neutral-700 p-6 shadow-sm">
+        <h2 class="text-lg font-semibold">Preview</h2>
+        <div id="preview" class="mt-6 grid place-items-center h-56 rounded-xl border border-dashed border-gray-300 dark:border-neutral-700 text-sm text-gray-500 dark:text-neutral-400">
+          O QR aparecerá aqui após gerar.
+        </div>
+        <a id="download" download="qrcode.png" href="#" class="hidden mt-6 w-full text-center rounded-xl bg-emerald-600 px-4 py-2 text-white text-sm font-medium hover:bg-emerald-700 focus:outline-none focus:ring-2 focus:ring-emerald-500">Baixar PNG</a>
+      </div>
+    </div>
+
+    <footer class="mt-12 text-center text-xs text-gray-400">LEO Clube Seara Centenário - Distrito LEO LD-8</footer>
+  </main>
+
+  <script>
+    // Ajuste aqui:
+    const BACKEND = "https://qrcodeleo.onrender.com"; // <- troque pela URL do Render
+    const API = `${BACKEND}/api/qrcode`;
+    const MAX = 10 * 1024 * 1024;
+
+    const form = document.getElementById('qr-form');
+    const urlInput = document.getElementById('url');
+    const logoInput = document.getElementById('logo');
+    const alertBox = document.getElementById('alert');
+    const preview = document.getElementById('preview');
+    const download = document.getElementById('download');
+
+    function showAlert(msg) {
+      alertBox.textContent = msg;
+      alertBox.classList.remove('hidden');
+    }
+    function clearAlert() {
+      alertBox.textContent = '';
+      alertBox.classList.add('hidden');
+    }
+
+    form.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      clearAlert();
+
+      const f = logoInput.files && logoInput.files[0];
+      if (f && f.size > MAX) {
+        showAlert('Arquivo do logo excede 10 MB.');
+        return;
+      }
+
+      try {
+        let resp;
+        if (f) {
+          const fd = new FormData();
+          fd.append('url', urlInput.value.trim());
+          fd.append('logo', f);
+          resp = await fetch(API, { method: 'POST', body: fd, mode: 'cors' });
+        } else {
+          resp = await fetch(API, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ url: urlInput.value.trim() }),
+            mode: 'cors'
+          });
+        }
+
+        const data = await resp.json();
+        if (!resp.ok) {
+          showAlert(data?.error || 'Falha ao gerar o QR Code.');
+          return;
+        }
+
+        const src = `data:image/png;base64,${data.qrb64}`;
+        preview.innerHTML = `<img src="${src}" alt="QR Code" class="mt-4 mx-auto w-full max-w-xs rounded-xl border border-gray-200 dark:border-neutral-700"/>`;
+        download.href = src;
+        download.classList.remove('hidden');
+      } catch (err) {
+        showAlert('Erro de rede ao falar com o backend.');
+        console.error(err);
+      }
+    });
+  </script>
+</body>
+</html>
