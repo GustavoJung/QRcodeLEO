@@ -77,7 +77,7 @@ def generate_qr_with_logo(url: str, logo_file=None) -> bytes:
     buf.seek(0)
     return buf.read()
 
-    @app.post("/api/qrcode")
+@app.post("/api/qrcode")
 def api_qrcode():
     """
     Gera QR code a partir de:
