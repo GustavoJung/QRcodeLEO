@@ -1,0 +1,26 @@
+{
+  "name": "qrcode---leo",
+  "version": "1.0.0",
+  "main": "index.js",
+  "directories": {
+    "doc": "docs"
+  },
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/GustavoJung/QRcodeLEO.git"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/GustavoJung/QRcodeLEO/issues"
+  },
+  "homepage": "https://github.com/GustavoJung/QRcodeLEO#readme",
+  "description": "",
+  "devDependencies": {
+    "tailwindcss": "^4.1.12"
+  }
+}

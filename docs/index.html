@@ -7,7 +7,43 @@
   <link rel="icon" type="image/png" href="./logo_leo.png">
   <meta name="color-scheme" content="light dark">
   <script src="https://cdn.tailwindcss.com"></script>
+
+  <style>
+    /* Cartão do preview */
+    .preview-card { position: relative; }
+
+    /* Área onde a imagem do QR aparece */
+    #preview{
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      min-height: 360px;          /* altura confortável p/ não “pular” o layout */
+      padding: 12px;
+      border: 1px dashed #d1d5db; /* cor neutra */
+      border-radius: 16px;
+      background: #fff;
+    }
+
+    /* A própria imagem do QR */
+    #preview img{
+      display: block;
+      max-width: 100%;
+      max-height: 320px;          /* evita “vazar” da área */
+      height: auto;
+      width: auto;
+      border-radius: 12px;
+      border: 1px solid #e5e7eb;
+    }
+
+    /* Botão de download: escondido até ter uma imagem */
+    #download{ 
+      display: none; 
+      margin-top: 12px;
+    }
+    #download.is-visible{ display: inline-block; }
+  </style>
 </head>
+
 <body class="min-h-screen bg-gray-50 text-gray-900 dark:bg-neutral-900 dark:text-neutral-100">
   <header class="py-6 flex flex-col items-center justify-center">
     <img src="./logo_leo.png" alt="Logo" class="w-20 h-20 mb-3 rounded-full shadow">
@@ -45,12 +81,17 @@
         </div>
       </form>
 
-      <div class="rounded-2xl bg-white/70 dark:bg-neutral-800/70 backdrop-blur border border-gray-200 dark:border-neutral-700 p-6 shadow-sm">
+      <div class="preview-card rounded-2xl bg-white/70 dark:bg-neutral-800/70 backdrop-blur border border-gray-200 dark:border-neutral-700 p-6 shadow-sm">
         <h2 class="text-lg font-semibold">Preview</h2>
-        <div id="preview" class="mt-6 grid place-items-center h-56 rounded-xl border border-dashed border-gray-300 dark:border-neutral-700 text-sm text-gray-500 dark:text-neutral-400">
+        <!-- Removi classes responsaveis por limitar altura e grid aqui.
+             O CSS acima controla o layout do preview. -->
+        <div id="preview" class="mt-6 text-sm text-gray-500 dark:text-neutral-400">
           O QR aparecerá aqui após gerar.
         </div>
-        <a id="download" download="qrcode.png" href="#" class="hidden mt-6 w-full text-center rounded-xl bg-emerald-600 px-4 py-2 text-white text-sm font-medium hover:bg-emerald-700 focus:outline-none focus:ring-2 focus:ring-emerald-500">Baixar PNG</a>
+        <a id="download" download="qrcode.png" href="#"
+           class="mt-6 w-full text-center rounded-xl bg-emerald-600 px-4 py-2 text-white text-sm font-medium hover:bg-emerald-700 focus:outline-none focus:ring-2 focus:ring-emerald-500">
+           Baixar PNG
+        </a>
       </div>
     </div>
 
@@ -58,8 +99,8 @@
   </main>
 
   <script>
-    // Ajuste aqui:
-    const BACKEND = "https://qrcodeleo.onrender.com"; // <- troque pela URL do Render
+    // Backend:
+    const BACKEND = "https://qrcodeleo.onrender.com"; // <- troque se necessário
     const API = `${BACKEND}/api/qrcode`;
     const MAX = 10 * 1024 * 1024;
 
@@ -79,9 +120,25 @@
       alertBox.classList.add('hidden');
     }
 
+    function resetPreview(){
+      preview.textContent = "O QR aparecerá aqui após gerar.";
+      download.classList.remove('is-visible');
+      download.removeAttribute('href');
+    }
+
+    function showQR(src){
+      const img = new Image();
+      img.src = src;
+      img.alt = "QR Code";
+      preview.replaceChildren(img);
+      download.href = src;
+      download.classList.add('is-visible');
+    }
+
     form.addEventListener('submit', async (e) => {
       e.preventDefault();
       clearAlert();
+      resetPreview();
 
       const f = logoInput.files && logoInput.files[0];
       if (f && f.size > MAX) {
@@ -112,9 +169,7 @@
         }
 
         const src = `data:image/png;base64,${data.qrb64}`;
-        preview.innerHTML = `<img src="${src}" alt="QR Code" class="mt-4 mx-auto w-full max-w-xs rounded-xl border border-gray-200 dark:border-neutral-700"/>`;
-        download.href = src;
-        download.classList.remove('hidden');
+        showQR(src);
       } catch (err) {
         showAlert('Erro de rede ao falar com o backend.');
         console.error(err);
