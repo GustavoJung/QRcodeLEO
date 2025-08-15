@@ -22,12 +22,18 @@ app = Flask(__name__, static_folder="static")
 # Limite de upload
 app.config["MAX_CONTENT_LENGTH"] = MAX_CONTENT_LENGTH
 
-# Ativar CORS (ajuste origins para o seu GitHub Pages se quiser restringir)
-CORS(app, resources={r"/*": {"origins": [
-    "https://gustavojung.github.io/",
-    "https://gustavojung.github.io/QRcodeLEO"
-]}}) # ou CORS(app, resources={r"/*": {"origins": "https://seuusuario.github.io"}})
+ALLOWED_ORIGINS = os.environ.get(
+    "ALLOWED_ORIGINS",
+    "https://gustavojung.github.io"
+).split(",")
 
+# aplica CORS somente nas rotas de API
+CORS(
+    app,
+    resources={r"/api/*": {"origins": ALLOWED_ORIGINS}},
+    supports_credentials=False,
+    max_age=86400,
+)
 # Configuração de logging
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
