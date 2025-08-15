@@ -14,14 +14,24 @@
 
     /* Área onde a imagem do QR aparece */
     #preview{
+      position: relative;          /* para posicionar o overlay dentro */
       display: flex;
       align-items: center;
       justify-content: center;
-      min-height: 360px;          /* altura confortável p/ não “pular” o layout */
+      min-height: 360px;           /* altura confortável p/ não “pular” o layout */
       padding: 12px;
-      border: 1px dashed #d1d5db; /* cor neutra */
+      border: 1px dashed #d1d5db;  /* cor neutra */
       border-radius: 16px;
       background: #fff;
+      overflow: hidden;            /* garante que o overlay respeite o border-radius */
+    }
+
+    /* Conteúdo do preview (texto inicial ou imagem) */
+    #preview-content {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      width: 100%;
     }
 
     /* A própria imagem do QR */
@@ -41,18 +51,40 @@
       margin-top: 12px;
     }
     #download.is-visible{ display: inline-block; }
+
+    /* Overlay do loading (apenas no card de preview) */
+    #loading-overlay {
+      position: absolute;
+      inset: 0;                             /* top/right/bottom/left = 0 */
+      background: rgba(255,255,255,0.85);
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      font-size: 0.875rem;
+      font-weight: 500;
+      color: #374151;
+      border-radius: 16px;
+      z-index: 10;
+      visibility: hidden;
+      pointer-events: none;                 /* evita bloquear clique no download depois */
+    }
+    #loading-overlay.visible { visibility: visible; }
+
+    .spinner {
+      border: 3px solid #ddd;
+      border-top: 3px solid #6366f1;       /* Indigo */
+      border-radius: 50%;
+      width: 32px;
+      height: 32px;
+      animation: spin 0.8s linear infinite;
+      margin-bottom: 8px;
+    }
+    @keyframes spin { from {transform: rotate(0)} to {transform: rotate(360deg)} }
   </style>
 </head>
 
 <body class="min-h-screen bg-gray-50 text-gray-900 dark:bg-neutral-900 dark:text-neutral-100">
-  <!-- Overlay de Loading -->
-  <div id="loading-overlay" class="fixed inset-0 z-50 hidden items-center justify-center bg-black/30 backdrop-blur-sm">
-    <div class="flex flex-col items-center gap-4 rounded-2xl bg-white dark:bg-neutral-800 px-8 py-6 shadow-xl border border-gray-200 dark:border-neutral-700">
-      <div class="h-10 w-10 rounded-full border-4 border-indigo-600 border-t-transparent animate-spin"></div>
-      <p class="text-sm text-gray-700 dark:text-neutral-300">Gerando QR Code…</p>
-    </div>
-  </div>
-
   <header class="py-6 flex flex-col items-center justify-center">
     <img src="./logo_leo.png" alt="Logo" class="w-20 h-20 mb-3 rounded-full shadow">
     <h1 class="text-center text-3xl font-semibold">Gerador de QR Code</h1>
@@ -92,8 +124,15 @@
       <div class="preview-card rounded-2xl bg-white/70 dark:bg-neutral-800/70 backdrop-blur border border-gray-200 dark:border-neutral-700 p-6 shadow-sm">
         <h2 class="text-lg font-semibold">Preview</h2>
         <div id="preview" class="mt-6 text-sm text-gray-500 dark:text-neutral-400">
-          O QR aparecerá aqui após gerar.
+          <!-- overlay de loading (fica visível só durante a geração) -->
+          <div id="loading-overlay">
+            <div class="spinner"></div>
+            Gerando QR Code...
+          </div>
+          <!-- conteúdo real do preview (texto inicial ou img) -->
+          <div id="preview-content">O QR aparecerá aqui após gerar.</div>
         </div>
+
         <a id="download" download="qrcode.png" href="#"
            class="mt-6 w-full text-center rounded-xl bg-emerald-600 px-4 py-2 text-white text-sm font-medium hover:bg-emerald-700 focus:outline-none focus:ring-2 focus:ring-emerald-500">
            Baixar PNG
@@ -102,13 +141,13 @@
     </div>
 
     <footer class="mt-12 text-center text-xs text-gray-400">
-  LEO Clube Seara Centenário - Distrito LEO LD-8
-  <br>
-  <span class="block mt-1 text-gray-500 dark:text-neutral-500">
-    Se o aplicativo não funcionar, aguarde um minuto e tente novamente até o servidor ligar. 
-    O servidor é gratuito e se desliga devido a inatividade.
-  </span>
-</footer>
+      LEO Clube Seara Centenário - Distrito LEO LD-8
+      <br>
+      <span class="block mt-1 text-gray-500 dark:text-neutral-500">
+        Se o aplicativo não funcionar, aguarde um minuto e tente novamente até o servidor ligar. 
+        O servidor é gratuito e se desliga devido a inatividade.
+      </span>
+    </footer>
   </main>
 
   <script>
@@ -122,18 +161,19 @@
     const logoInput = document.getElementById('logo');
     const alertBox = document.getElementById('alert');
     const preview = document.getElementById('preview');
+    const previewContent = document.getElementById('preview-content');
     const download = document.getElementById('download');
 
-    // Loading
+    // Loading (apenas no card de preview)
     const overlay = document.getElementById('loading-overlay');
     const submitBtn = document.getElementById('submit-btn');
     function showLoading() {
-      overlay.classList.remove('hidden');
+      overlay.classList.add('visible');
       submitBtn.disabled = true;
       submitBtn.classList.add('opacity-60','cursor-not-allowed');
     }
     function hideLoading() {
-      overlay.classList.add('hidden');
+      overlay.classList.remove('visible');
       submitBtn.disabled = false;
       submitBtn.classList.remove('opacity-60','cursor-not-allowed');
     }
@@ -148,7 +188,7 @@
     }
 
     function resetPreview(){
-      preview.textContent = "O QR aparecerá aqui após gerar.";
+      previewContent.textContent = "O QR aparecerá aqui após gerar.";
       download.classList.remove('is-visible');
       download.removeAttribute('href');
     }
@@ -157,7 +197,8 @@
       const img = new Image();
       img.src = src;
       img.alt = "QR Code";
-      preview.replaceChildren(img);
+      img.onload = () => { /* garante que já carregou antes de exibir */ };
+      previewContent.replaceChildren(img);
       download.href = src;
       download.classList.add('is-visible');
     }
